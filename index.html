@@ -1,0 +1,764 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>문자월간</title>
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Nanum+Myeongjo:wght@400;700;800&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <style>
+        /* 기본 설정 */
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #1a1a1a;
+            overflow-x: hidden;
+            overflow-y: scroll;
+            cursor: none; /* 기본 커서 숨김 */
+        }
+
+        * { font-family: 'Nanum Myeongjo', serif !important; }
+
+        #app-wrapper {
+            position: relative;
+            width: 100%;
+            display: flex;
+            justify-content: center;
+        }
+
+        /* 디자인 보드 */
+        .design-board {
+            width: 1920px;
+            height: 3888px;
+            background-color: black;
+            position: absolute;
+            top: 0;
+            left: 0;
+            transform-origin: 0 0; 
+            will-change: transform;
+        }
+
+        /* 렌즈 커서 */
+        #lens-cursor {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            border: 2px solid rgba(0,0,0,0.4);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            overflow: hidden; 
+            z-index: 9999;
+            pointer-events: none;
+            background-color: white;
+            display: none;
+            will-change: transform;
+        }
+
+        #lens-content {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 1920px;
+            height: 3888px;
+            transform-origin: 0 0;
+            will-change: transform;
+        }
+
+        /* 
+           [한 글자 유닛]
+           - display: inline-block (너비 유지)
+           - vertical-align: baseline (줄맞춤 유지 - 중요!)
+        */
+        .char-unit {
+            display: inline-block; 
+            position: relative; 
+            transition: none;
+            vertical-align: baseline; 
+        }
+
+        /* 
+           [오버레이 텍스트]
+           - 원본 글자 정중앙에 위치
+           - 원본 글자가 transparent가 되어도 얘는 black이어야 함
+        */
+        .char-overlay {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            display: flex;
+            align-items: center; 
+            justify-content: center;
+            width: 100%; /* 부모 너비 꽉 채움 */
+            height: 100%; /* 부모 높이 꽉 채움 */
+            
+            background-color: white; /* 뒤에 있는 원본(투명해진) 글자 잔상 가림용 */
+            color: black !important; /* 글자색 강제 */
+            
+            white-space: nowrap;
+            pointer-events: none;
+            z-index: 10;
+            
+            /* 폰트 크기나 줄높이는 부모 상속 */
+            font-size: inherit;
+            line-height: inherit;
+            font-weight: inherit;
+        }
+
+        .struck-through {
+            text-decoration: line-through;
+            text-decoration-thickness: 2px;
+            text-decoration-color: black;
+        }
+
+        p { line-height: 1.6; }
+
+        /* 
+           [사이드바 수정]
+           - 점 + 이름 디자인
+        */
+        #sidebar {
+            position: fixed;
+            left: 40px;
+            top: 50%;
+            transform: translateY(-50%);
+            z-index: 2147483647; 
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            cursor: default;
+            
+            background-color: rgba(255, 255, 255, 0.9); /* 가독성 확보 */
+            padding: 25px;
+            border: 1px solid #ccc;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        }
+
+        .sidebar-item {
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 18px;
+            font-weight: 800;
+            color: black;
+            font-family: 'Nanum Myeongjo', serif;
+        }
+
+        .sidebar-item:hover {
+            opacity: 0.6;
+            transform: translateX(5px);
+        }
+
+        .sidebar-dot {
+            font-weight: bold;
+            font-size: 20px;
+            line-height: 0;
+            margin-top: -2px; /* 시각적 중앙 보정 */
+        }
+
+        @keyframes blink-effect {
+            0% { opacity: 1; }
+            50% { opacity: 0.2; }
+            100% { opacity: 1; }
+        }
+        .blinking {
+            animation: blink-effect 0.5s infinite;
+        }
+
+    </style>
+</head>
+<body>
+
+    <!-- 사이드바 (그래픽 힌트) -->
+    <!-- 커서가 보여야 클릭 가능하므로 cursor: auto 지정 -->
+    <div id="sidebar" style="cursor: auto;">
+        <div class="sidebar-item" onclick="triggerGlobalEffect('kim')">
+            <span class="sidebar-dot">·</span> 김영우
+        </div>
+        <div class="sidebar-item" onclick="triggerGlobalEffect('hwang')">
+            <span class="sidebar-dot">·</span> 황제연
+        </div>
+        <div class="sidebar-item" onclick="triggerGlobalEffect('park')">
+            <span class="sidebar-dot">·</span> 박제하
+        </div>
+        <div class="sidebar-item" onclick="triggerGlobalEffect('lee')">
+            <span class="sidebar-dot">·</span> 이채원
+        </div>
+    </div>
+
+    <!-- 렌즈 커서 -->
+    <div id="lens-cursor">
+        <div id="lens-content"></div>
+    </div>
+
+    <!-- 메인 화면 -->
+    <div id="app-wrapper">
+        <div id="base-layer" class="design-board">
+            
+            <div class="absolute top-[158px] left-[145px] w-[1631px] h-[3572px] bg-white"></div>
+            <!-- 이미지들 -->
+            <img class="interactive-img absolute top-[484px] left-[775px] w-[568px] h-[394px] aspect-[1.44] bg-gray-300 object-cover" src="https://placehold.co/568x394?text=IMG+02-1" alt="Element" />
+            <img class="interactive-img absolute top-[1717px] left-[184px] w-[359px] h-[439px] aspect-[0.82] bg-gray-300 object-cover" src="https://placehold.co/359x439?text=IMG+01-1" alt="Element" />
+            <img class="interactive-img absolute top-[194px] left-[525px] w-[871px] h-[223px] aspect-[3.9] object-cover bg-gray-300" src="https://placehold.co/871x223?text=IMG+1" alt="Element" />
+
+            <div class="top-[194px] left-[186px] w-[325px] font-normal text-black text-[28px] leading-[normal] whitespace-nowrap absolute tracking-[0]">
+                1970年 12月 16日 水曜日
+            </div>
+            <div class="top-[194px] left-[1408px] w-[325px] font-normal text-black text-[28px] text-right leading-[normal] whitespace-nowrap absolute tracking-[0]">
+                文字月刊 創刊號
+            </div>
+
+            <!-- 기사 내용 -->
+            <p class="top-[630px] left-[182px] w-[544px] font-extrabold text-[22px] text-center leading-[29.3px] absolute tracking-[0]">
+                <span class="text-black">단순 인쇄 사고로 보기엔 패턴 있다는 말 돌아 내부 직원들 사이에서는 누가 고치는 건지 모르겠다는 </span>
+                <span class="interactive-group" data-type="green">不安感</span>
+                <span class="text-black"> 확산</span>
+            </p>
+
+            <p class="top-[1202px] left-[185px] w-[544px] font-extrabold text-[22px] leading-[29.3px] absolute tracking-[0]">
+                <span class="text-black">종이는 그대로인데 표현만 달라졌다는 주민들 증언<br /></span>
+                <span class="interactive-group" data-type="purple">짭새들</span>
+                <span class="text-black">은 그런 일 없다 선 긋지만 말 안 맞아</span>
+            </p>
+
+            <p class="top-[1717px] left-[698px] w-[25px] font-extrabold text-black text-[22px] leading-[22px] absolute tracking-[0]">
+                <span class="leading-[23.3px]">문자전쟁이<br /></span>
+                <span class="leading-[16.1px]"> 손</span>
+                <span class="leading-[23.3px]">짓</span>
+            </p>
+            <p class="top-[1717px] left-[644px] w-[25px] font-extrabold text-black text-[22px] leading-[22px] absolute tracking-[0]">
+                <span class="leading-[23.3px]">주민들<br /></span>
+                <span class="leading-[16.1px]"><br />사</span>
+                <span class="leading-[23.3px]">이에</span>
+            </p>
+            <p class="top-[1717px] left-[618px] w-[25px] font-extrabold text-[22px] leading-[22px] absolute tracking-[0]">
+                <span class="interactive-group leading-[23.3px]" data-type="purple">구라</span>
+                <span class="text-black leading-[23.3px]">와<br /></span>
+                <span class="text-black leading-[16.1px]"><br />오</span>
+                <span class="text-black leading-[23.3px]">해가</span>
+            </p>
+            <div class="top-[1717px] left-[592px] w-[25px] font-extrabold text-black text-[22px] leading-[23.3px] absolute tracking-[0]">
+                난무
+            </div>
+            <p class="top-[1717px] left-[670px] w-[25px] font-extrabold text-black text-[22px] leading-[22px] absolute tracking-[0]">
+                <span class="leading-[23.3px]">싸움으로<br /></span>
+                <span class="leading-[16.1px]"><br />번</span>
+                <span class="leading-[23.3px]">지며</span>
+            </p>
+
+            <p class="top-[1350px] left-[1169px] w-[137px] font-extrabold text-[22px] leading-[29.3px] absolute tracking-[0]">
+                <span class="text-black">신문자 유행이 오해를 만들고 사람들 사이에 </span>
+                <span class="interactive-group" data-type="purple">영판 불신과 딴죽</span>
+                <span class="text-black">이 쌓여</span>
+            </p>
+
+            <p class="top-[897px] left-[775px] w-[544px] font-extrabold text-black text-[22px] leading-[29.3px] absolute tracking-[0]">
+                지난주 부산 모 중학교 기말고사서 핵심 단어 누락
+            </p>
+
+            <p class="top-[484px] left-[1361px] w-[372px] font-extrabold text-[22px] leading-[29.3px] absolute tracking-[0]">
+                <span class="text-black">재인쇄 요구 늘었지만 원인은 늘 기계 </span>
+                <span class="interactive-group" data-type="green">問題</span>
+                <span class="text-black">로만 정리, 베테랑 기사들조차 찝찝함 감추지 못해</span>
+            </p>
+
+            <p class="top-[475px] left-[216px] w-[485px] font-normal text-[50px] text-center leading-[63px] absolute tracking-[0]">
+                <span class="interactive-group" data-type="green">官公署 公文</span>
+                <span class="font-extrabold text-black">에서<br /></span>
+                <span class="interactive-group" data-type="green">特定 単語 反復 漏落</span>
+            </p>
+
+            <p class="top-[2516px] left-[185px] w-[539px] font-normal text-[50px] text-center leading-[63px] absolute tracking-[0]">
+                <span class="font-extrabold text-black">문자가 사람 이름을 골라 붙는</span>
+                <span class="text-black">&nbsp;</span>
+                <span class="interactive-group" data-type="green">怪現象</span>
+                <span class="font-extrabold text-black"> 발생</span>
+            </p>
+
+            <p class="top-[2214px] left-[1365px] w-[373px] font-extrabold text-black text-[50px] leading-[63px] absolute tracking-[0]">
+                종이를 벗어난 <br />
+                글자들이 스스로 돌아다녀
+            </p>
+
+            <p class="top-[705px] left-[185px] w-[273px] font-normal text-black text-[17px] leading-[27.2px] absolute tracking-[0]">
+                최근 서울과 수도권 일부 관공서에서 배포된 공문과 안내문에서 특정 단어 가 반복적으로 빠져 있다는 이야기가 내부 직원들 사이에서 돌고 있다. 처 음에는 인쇄 과정에서의 실수로 치부 되었으나 비슷한 형태의 누락이 여러 부서에서 동시에 확인되면서 단순 사 고로 보기 어렵다는 목소리가 커지고 있다. 한 구청 직원은 분명히 결재 단 계 문서에는 있었던 표현이 배포본에 서는 빠져 있었고 그 자리에 문장 흐 름만 어색하게 남아 있었다고 말했다.
+                <br />
+                공식 입장은 여전히 인쇄 오류라는 설 명이지만 직원들 사이에서는 누군가 의도적으로 손을 대는 것 아니냐는 말 도 나온다. 특히 빠지는 단어가 늘 비 슷하다는 점이 문제로 지적된다.
+            </p>
+
+            <!-- 기자 목록 (사이드바 연동) -->
+            <div class="top-[344px] left-[357px] w-[21px] font-bold text-black text-[15px] text-center leading-[20.7px] absolute tracking-[0]">황<br>제<br>연</div>
+            <div class="top-[344px] left-[381px] w-[21px] font-bold text-black text-[15px] text-center leading-[20.7px] absolute tracking-[0]">이<br>채<br>원</div>
+            <div class="top-[344px] left-[405px] w-[21px] font-bold text-black text-[15px] text-center leading-[20.7px] absolute tracking-[0]">박<br>제<br>하</div>
+            <div class="top-[344px] left-[429px] w-[21px] font-bold text-black text-[15px] text-center leading-[20.7px] absolute tracking-[0]">김<br>영<br>우</div>
+
+            <p class="top-[942px] left-[775px] w-[273px] font-normal text-[17px] leading-[27.2px] absolute tracking-[0]">
+                <span class="text-black">지난주 부산 시내 한 중학교에서 실시된 기말고사 국어 시험에서 핵심 단어 하나가 빠진 채 </span>
+                <span class="interactive-group" data-type="green">試験</span>
+                <span class="text-black">이 진행되는 일이 벌어졌다. 해당 문제는 문학 지문 해석과 관련된 것이었으나 핵심 형용사가 빠지면서 문장의 의미가 애매해졌다. 시험 도중 학생들 사이에서 웅성거림이 커졌고 </span>
+                <span class="interactive-group" data-type="green">一部</span>
+                <span class="text-black">는 손을 들어 질문했으나 감독 교사는 시험 종료 후 설명하겠다는 말만 반복했다.<br />시험이 끝난 뒤 학교 측은 인쇄 과정에서 단어가 빠졌으나 전체 맥락으로 충분히 해석 가능하다는 입장을 밝혔다. 그러나 학생들과 학부모들은 말이 안</span>
+            </p>
+
+            <p class="top-[2774px] left-[775px] w-[273px] font-normal text-[17px] leading-[27.2px] absolute tracking-[0]">
+                <span class="text-black">서울 시내 다방가에서는 손바닥이나 손등에 글자를 거꾸로 적으면 운이 열린다는 부적문자가 한창 유행이다. 젊은층은 </span>
+                <span class="interactive-group" data-type="green">写真</span>
+                <span class="text-black">을 찍을 때 손바닥을 내밀고 뒤집힌 글자를 자랑하며 서로 장난을 치고 있다. 하지만 이 유행이 사람들 사이에 오해와 갈등을 부르는 중이다. 얼마 전에는 한 시민이 지갑을 꺼내다 손바닥이 보였을 뿐인데 상대방이 그걸 조롱이라 착각하며 실랑이가 벌어졌다. 당사자는 영문도 모르겠다며 </span>
+                <span class="interactive-group" data-type="red">난처해했지만</span>
+                <span class="text-black"> 상대는 그 손짓이 분명 숨은 의미라고 우겼다.<br />전문가들은 글자를 뒤집어 쓰는 행위가 손짓과 섞이면서 </span>
+                <span class="interactive-group" data-type="green">意味</span>
+                <span class="text-black">가 혼탁해지고 있다고 분석한다. 무엇이 장난이고 무엇이 의도인지 도통 구분이 어려워졌다는 것이다. 경찰은 이미 불법 인쇄물 단속 계획을 밝혔지만 젊은층은</span>
+            </p>
+
+            <p class="top-[942px] left-[1070px] w-[273px] font-normal text-[17px] leading-[27.2px] absolute tracking-[0]">
+                <span class="text-black">된다는 반응이다. 어떤 학부모는 문제를 풀 때는 아무 말 없다가 시험 끝나고 나서야 출제 의도 운운하는 건 너무 편한 소리 아니냐며 불만을 토로했다.<br />교무실 내부에서는 더 </span>
+                <span class="interactive-group" data-type="green">以上</span>
+                <span class="text-black"> 문제를 키우지 말자는 분위기가 강해 재시험이나 점수 조정 논의는 조용히 묻혔다. 그러나 </span>
+                <span class="interactive-group" data-type="green">学生</span>
+                <span class="text-black">들 사이에서는 요즘 시험지는 글자 하나 빠지는 건 예사라며 시험보다 인쇄 상태부터 걱정해야 하는 세상이라는 말까지 나왔다. 교사들 역시 속으로는 </span>
+                <span class="interactive-group" data-type="purple">영판</span>
+                <span class="text-black"> 껄끄럽지만 대놓고 말하기는 어려운 분위기다.</span>
+            </p>
+
+            <p class="top-[583px] left-[1365px] w-[373px] font-normal text-[17px] leading-[27.2px] absolute tracking-[0]">
+                <span class="text-black">최근 몇몇 신문사 인쇄소에서는 활자 배열이 미묘하게 틀어지는 일이 잦아지고 있다. 문장이 완전히 깨지는 수준은 아니지만 </span>
+                <span class="interactive-group" data-type="green">単語</span>
+                <span class="text-black"> 사이 간격이 이상하게 벌어지거나 줄이 살짝 밀리는 경우가 반복되며 독자들의 문의가 늘고 있다. 인쇄소에서 수십 년 일한 기사들조차 이런 식의 오류는 예전엔 드물었다며 고개를 젓는다.<br />신문사 측은 기계 노후와 잉크 상태 문제를 원인으로 들고 있지만 현장에서는 설명되지 않는 부분이 많다는 말이 나온다. 어떤 날은 같은 기계로 찍은 신문 중 일부만 어긋난 상태로 나오기도 했기 때문이다. 한 인쇄 관계자는 활자를 새로 맞춰도 다음 날이면 또 미묘하게 달라져 있다며 요즘 활자들이 말을 잘 안 듣는다는 </span>
+                <span class="interactive-group" data-type="purple">농</span>
+                <span class="text-black">을 했지만 표정은 </span>
+                <span class="interactive-group" data-type="red">웃지 못할 분위기</span>
+                <span class="text-black">였다고 한다. 재인쇄를 하자니 비용 부담이 크고 그냥 넘기자니 독자 항의가 걱정되는 상황이 반복되면서 내부에서는 이 문제를 어떻게든 축소하려는 기류가 감지된다. 일부 기자들 사이에서는 요즘은 기사 내용보다 글자 상태부터 확인하게 된다는 말까지 나오고 있다.</span>
+            </p>
+
+            <p class="top-[1427px] left-[1365px] w-[244px] font-normal text-[17px] leading-[27.2px] absolute tracking-[0]">
+                <span class="text-black">미국 곳곳에서 알파벳이 제멋대로 움직이고 간판에서 사라졌다 돌아오는 등 이해하기 힘든 소동이 이어지며 국제 </span>
+                <span class="interactive-group" data-type="green">社会</span>
+                <span class="text-black">가 뒤숭숭하다. 뉴욕에서는 광고판 글자 세 개가 한밤중 흔적 없이 사라졌다가 새벽에 느닷없이 돌아왔다는 신고가 접수되었고 당시 관리업체는 전기 고장이라고 얼버무렸지만 주민들은 에이 또 </span>
+                <span class="interactive-group" data-type="purple">구라</span>
+                <span class="text-black"> 치네라며 믿지 않았다. 워싱턴 시카고 등지에서도 비슷한 현상이 잇따라 발생하자 미국 정부는 </span>
+                <span class="interactive-group" data-type="red">당황한</span>
+                <span class="text-black"> 기색이 역력하며 기자들의 질문에도 명확한 설명을 내놓지 못하고 있다.<br />브루클린에서는 자가 거리 표지판에서 증발하듯 사라지고 대신 보기에도 영판 어설픈&nbsp;&nbsp;비슷한 문양이 나타나 운전자들이 길을 잡지 못하는 일이 벌어졌다. </span>
+                <span class="interactive-group" data-type="purple">짭새</span>
+                <span class="text-black">들이 출동해 표지판을 뒤집어 보고 기록하며 사건을 수사했으나 주민들은 글자 하나 찾자고 왜 이리 호들갑이냐며 </span>
+                <span class="interactive-group" data-type="red">코웃음을 쳤다</span>
+                <span class="text-black">. 하지만 일부 주민은 이쯤 되면 미국 정부가 무언가 숨기고 있는 것 아니냐며 근거 없는 주장까지 펼쳐 사회 분위기가 혼잡해지고 있다.</span>
+            </p>
+
+            <p class="top-[2774px] left-[1070px] w-[273px] font-normal text-[17px] leading-[27.2px] absolute tracking-[0]">
+                <span class="text-black">에이 </span>
+                <span class="interactive-group" data-type="purple">짭새</span>
+                <span class="text-black">들 괜히 일 키운다며 크게 신경 쓰지 않는다. 다방 종업원들은 손님들이 얼굴보다 손바닥을 더 내민다며 세상이 참말로 요상해졌다고 말한다.<br />부적문자 유행은 멈출 기미가 없다. 행운을 빌든 장난을 치든 사람들은 계속 손바닥에 글자를 적고 다니고 있고 그 와중에 오해와 시비는 더 늘어나고 있다.</span>
+            </p>
+
+            <p class="top-[2426px] left-[1365px] w-[373px] font-normal text-[17px] leading-[27.2px] absolute tracking-[0]">
+                <span class="text-black">남도 지역에서는 요즘 순환자라는 괴이한 소문이 마을을 뒤집어놓고 있다. 종이에 찍힌 글자가 제멋대로 움직였다는 이야기가 처음 돌았을 때만 해도 사람들은 </span>
+                <span class="interactive-group" data-type="purple">뻥치네</span>
+                <span class="text-black"> 하며 웃어넘겼지만 며칠 지나지 않아 여러 사 람이 같은 걸 봤다며 난리가 났다. 특히 한 주민은 파리 쫓으려고 손을 휘저었을 뿐인데 글자 두 개가 그 손짓을 따라가는 듯 보였다고 증언했다. 이 말에 주민들은 영판 </span>
+                <span class="interactive-group" data-type="red">소름 돋는다</span>
+                <span class="text-black">는 반응을 보였다.<br />아이들은 골목에서 손을 둥글게 돌리며 글자가 따라오나 시험하고 어른들은 겉으로는 에이 </span>
+                <span class="interactive-group" data-type="purple">구라</span>
+                <span class="text-black">치지 말라 하면서도 밤에 혼자 있을 때 글자 생각이 나 영 </span>
+                <span class="interactive-group" data-type="red">불편해한다고</span>
+                <span class="text-black"> 털어놓는다. 어떤 상인은 글자가 가게 안으로 들어올까 싶어 문을 반쯤 닫아두기까지 했다. 학자들은 착시라느니 집단 피로 현상이라느니 말이 많지만 주민들은 그 말도 다 구라 같다고 한다.<br /></span>
+                <span class="interactive-group" data-type="purple">풍문</span>
+                <span class="text-black">은 </span>
+                <span class="interactive-group" data-type="purple">짭새</span>
+                <span class="text-black">보다 빠르게 퍼지고 있다. 어떤 이는 이젠 글자도 사람 말을 안 듣는 세상이 됐다며 투덜대고 또 어떤 이는 글자 잡아보겠다며 손짓 연습을 하는 웃지 못할 상황이다. 이 기괴한 소동은 당분간 잠잠해질 기미가 없다.</span>
+            </p>
+
+            <p class="top-[1518px] left-[1169px] w-[174px] font-normal text-[17px] leading-[27.2px] absolute tracking-[0]">
+                <span class="text-black">경북 북부에서는 삼획 신문자가 젊은층을 중심으로 번지고 있다. 붓 세 번만 움직이면 열두 감정을 표현할 수 있다며 </span>
+                <span class="interactive-group" data-type="red">신기하다</span>
+                <span class="text-black"> 떠들지만 </span>
+                <span class="interactive-group" data-type="green">実際</span>
+                <span class="text-black">로는 사람마다 해석이 달라 오해만 가득해지고</span>
+            </p>
+
+            <p class="top-[1736px] left-[775px] w-[568px] font-normal text-[17px] leading-[27.2px] absolute tracking-[0]">
+                <span class="text-black">있다. 며칠 전에는 한 청년이 </span>
+                <span class="interactive-group" data-type="green">写真</span>
+                <span class="text-black"> 찍자고 손가락 세 개를 펼쳤을 뿐인데 주민들이 이를 신문자 의식이라 오해하며 몰려들었다. 청년은 셔터 누르라는 뜻이었다고 해명했지만 주민들은 영 믿지 못하겠다는 표정이었다.<br />전문가들은 이런 신문자가 언어적 합의 없이 확산되면 집단적 </span>
+                <span class="interactive-group" data-type="red">혼란</span>
+                <span class="text-black">이 이어질 수 있다며 경고한다. 감정을 손짓으로 대신하려는 풍조가 계속되면 서로의 의도가 흐려져 </span>
+                <span class="interactive-group" data-type="red">불신</span>
+                <span class="text-black">이 커질 수 있다는 것이다. 그러나 젊은층은 그런 말에는 아랑곳하지 않고 삼획 포즈를 사진마다 사용하며 즐기고 있다. 어르신들은 요즘 애들 하는 짓은 도통 알 수 없다며 혀를 찼다.<br />삼획 신문자는 유행처럼 가벼워 보이지만 실제로는 사람들 사이에 괜한 </span>
+                <span class="interactive-group" data-type="purple">딴죽</span>
+                <span class="text-black">과 잡음만 늘리고 있다. 마을 안팎에서는 이 새로운 문자가 신기함보다 더 큰 골칫거리가 되고 있다.</span>
+            </p>
+
+            <p class="top-[1277px] left-[184px] w-[174px] font-normal text-[17px] leading-[27.2px] absolute tracking-[0]">
+                <span class="text-black">지난달 말 성북구의 한 파출소 앞 게시판을 두고 주민들 사이에서 이상한 말이 돌았다. 밤길 순찰 관련 안내문에 적힌 문구 가 하루 사이 </span>
+                <span class="interactive-group" data-type="green">微妙</span>
+                <span class="text-black">하게 바뀌었다는 것이다. 주민 들에 따르면 어제는 단속 이라는 표현이 있었는데 오늘은 지도라는 말로 바 뀌어 있었다고 한다. 종 이는 동일했고 고정 핀 위치도 변함이 없었다는 점에서 의혹이 제기됐다.</span>
+            </p>
+
+            <p class="top-[1277px] left-[374px] w-[174px] font-normal text-[17px] leading-[27.2px] absolute tracking-[0]">
+                <span class="text-black">파출소 측은 안내문을 교 체한 적이 없으며 주민 착각일 가능성이 크다고 설명했다. 그러나 같은 </span>
+                <span class="interactive-group" data-type="green">変化</span>
+                <span class="text-black">를 봤다는 주민이 여 럿 나오면서 이야기는 쉽 게 사그라들지 않았다. 어떤 주민은 요즘 </span>
+                <span class="interactive-group" data-type="purple">짭새</span>
+                <span class="text-black">들 도 말 순하게 고치느라 바쁜 모양이라며 비아냥을 던졌고 또 다른 주민은 괜히 </span>
+                <span class="interactive-group" data-type="red">예민</span>
+                <span class="text-black">해진 것 아 느냐며 말을 아꼈다.</span>
+            </p>
+
+            <p class="top-[1277px] left-[564px] w-[174px] font-normal text-[17px] leading-[27.2px] absolute tracking-[0]">
+                <span class="text-black">파출소 내부에서도 정확한 경위를 설명하지 못한 채 그런 일 없다는 말만 반복한 고 있어 주민들은 더 집 집 해 하는 분 위 기 다. 누군가는 이 정도 면 괜히 신경 쓰면 더 보이는 것일 수도 있다고 말하지만 다른 누군가는 문구가 바 뀌는 방향이 늘 비슷하다는 점에서 영 </span>
+                <span class="interactive-group" data-type="red">수상하다</span>
+                <span class="text-black">고 말한다.</span>
+            </p>
+
+            <p class="top-[1904px] left-[564px] w-[174px] font-normal text-[17px] leading-[27.2px] absolute tracking-[0]">
+                <span class="text-black">경기도 한 면 단위 마을에서는 몇 달째 문자전 쟁 이라 불리는 </span>
+                <span class="interactive-group" data-type="purple">지랄난</span>
+                <span class="text-black"> 소동이 이어지고 있다. 발단은 국어반 교사가 읍 발음을 통일하자고 한 말 한마디였는데 주민들은 </span>
+                <span class="interactive-group" data-type="purple">영판</span>
+                <span class="text-black">&nbsp;</span>
+                <span class="interactive-group" data-type="red">흥분한</span>
+                <span class="text-black"> 채 찬성과 반대로 갈라져 서로 </span>
+                <span class="interactive-group" data-type="purple">꼴값</span>
+                <span class="text-black">이라며</span>
+            </p>
+
+            <p class="top-[2743px] left-[185px] w-[267px] font-normal text-[17px] leading-[27.2px] absolute tracking-[0]">
+                <span class="text-black">최근 충청과 강원 지역을 중심으로 사 람 이름표에 찍힌 글자들이 스스로 자 리를 옮기거나 사라지는 사건이 잇따 르며 지역 사회가 </span>
+                <span class="interactive-group" data-type="red">뒤숭숭</span>
+                <span class="text-black">해지고 있다. 한 주민은 아침에 마당을 쓸다가 현관 문패를 보고 영판 기절할 뻔했다며 하 소연했다. 분명 어제까지만 해도 아내 이름이 제대로 적혀 있었는데 밤새 글 자 둘이 뒤바뀌어 딴사람 이름 모양이 되었다는 것이다. 처음에는 장난인가 싶어 아이들을 의심했으나 아이들이 </span>
+                <span class="interactive-group" data-type="red">울먹이며</span>
+                <span class="text-black"> 자신들이 그런 장난을 친 적 이 없다고 주장하자 가족들은 </span>
+                <span class="interactive-group" data-type="purple">도통</span>
+                <span class="text-black"> 무 슨 영문인지 몰라 서로 눈치만 봤다.<br />또 어느 마을에서는 장정의 이름 석 자 가운데 가운데 글자만 감쪽같이 증 발해버리는 바람에 동네가 한바탕 난 리법석이 났다. 주민들은 혹시 도적 이라도 들까 우려해 밤새 순찰을 돌았고 </span>
+                <span class="interactive-group" data-type="purple">짭새</span>
+                <span class="text-black">가 출동해 문패를</span>
+            </p>
+
+            <p class="top-[2747px] left-[463px] w-[262px] font-normal text-[17px] leading-[27.2px] absolute tracking-[0]">
+                <span class="text-black">열심히 들여다보았으나 별다른 단서는 나오지 않 았다. 경찰은 누군가 외부에서 장난 친 것 같다고 발표했지만 주민들은 에이 </span>
+                <span class="interactive-group" data-type="purple">구라</span>
+                <span class="text-black">치지 마라며 믿지 않았다. 일 부 주민은 문패 옆에서 작은 점과 획 이 꾸물거리는 것을 봤다고 주장해 논 란은 더 커졌다.<br />언어학자들은 사람들의 피로가 누적 되어 글자가 흔들려 보이는 착시일 수 있다고 설명했지만 주민들은 그 말조 차 믿기 어려운 분위기다. 한 어르신 은 요즘 글자들이 아주 제멋대로라며 내 이름이 언제 또 바뀔지 몰라 잠도 제대로 못 잔다고 말했다. 일부 가정 에서는 문패를 집 안으로 들여놓고 자 물쇠를 채우는 웃지 못할 풍경도 벌어 지고 있다. 앞으로 문자 혼란이 어디 까지 번질지 예측하기 어려운 가운데 주민들의 </span>
+                <span class="interactive-group" data-type="red">불안</span>
+                <span class="text-black">은 더욱 커지고 있다.</span>
+            </p>
+
+            <p class="top-[2174px] left-[184px] w-[545px] font-normal text-[17px] leading-[27.2px] absolute tracking-[0]">
+                <span class="text-black">다투기 시작했다. 얼마 전에는 회관 앞에서 한 주민이 팔을 높게 들어 올린 장면이 사진으로 찍히며 저 손짓이 찬성 신호냐 반대 조롱이냐 로 논란이 더욱 번졌다. 해당 주민은 벌레 털어낸 것뿐이라고 했지만 사람들은 그 말을 </span>
+                <span class="interactive-group" data-type="purple">구라</span>
+                <span class="text-black"> 아니냐며 </span>
+                <span class="interactive-group" data-type="red">의심스레</span>
+                <span class="text-black"> 바라보았다. 갈등은 손짓 체계까지 생길 정도 로 커졌다. 받침을 지키자는 쪽은 검지를 쭉 뻗어 보이고 받침을 없애자는 쪽 은 손바닥을 둥글게 말아 올리며 서로 자기 주장만 맞다며 우겼다. 골목길마다 괜히 눈치 싸움이 벌어지고 간판에도 손동작을 그려 붙이니 마을이 영 </span>
+                <span class="interactive-group" data-type="red">수상쩍은</span>
+                <span class="text-black"> 분위기가 되었다. 노인들은 글자 하나 갖고 </span>
+                <span class="interactive-group" data-type="purple">지랄</span>
+                <span class="text-black">을 하더니 이제는 손짓까지 정치판이 됐다며 </span>
+                <span class="interactive-group" data-type="red">한숨을 쉬었다</span>
+                <span class="text-black">. 언어학 </span>
+                <span class="interactive-group" data-type="green">専門家</span>
+                <span class="text-black">들은 이 사태가 문자 때문이라 기보다 체면과 성질이 뒤엉킨 집단 갈등이라고 말한다. 하지만 주민들은 도통 자기 입장 내려놓을 생각이 없어 보여 이 난리법석은 쉽게 끝나지 않을 듯하다.</span>
+            </p>
+
+            <p class="top-[705px] left-[460px] w-[273px] font-normal text-[17px] leading-[27.2px] absolute tracking-[0]">
+                <span class="text-black">직접적으로 책임 소재를 가리킬 수 있 는 </span>
+                <span class="interactive-group" data-type="green">表現</span>
+                <span class="text-black">이나 민원 소지가 있는 단어들 이 빠지는 경우가 많다는 것이다. 한 직원은 이 정도면 그냥 </span>
+                <span class="interactive-group" data-type="purple">구라</span>
+                <span class="text-black">라고 넘길 수 있는 수준은 아니라고 했지만 이런 이야기를 꺼내는 것 자체가 </span>
+                <span class="interactive-group" data-type="red">부담스러 워</span>
+                <span class="text-black"> 더 깊이 파고들지 못하는 </span>
+                <span class="interactive-group" data-type="green">雰囲気</span>
+                <span class="text-black">라 고 전했다.<br />윗선에서는 쓸데없는 말 만들지 말라 는 식으로 정리하고 있으며 공식 문제 제기는 없었다. 그러나 직원들 사이에 서는 혹시라도 내가 올린 문서도 나중 에 다르게 나가는 것 아니냐는 불안이 은근히 퍼지고 있다. 일부는 </span>
+                <span class="interactive-group" data-type="green">個人的</span>
+                <span class="text-black">으 로 보관한 초안과 배포본을 비교해보 는 일까지 하고 있다는 말도 나온다.</span>
+            </p>
+
+            <div class="absolute top-[475px] left-[752px] w-px h-[2845px] bg-black"></div>
+            <div class="absolute top-[1184px] left-[185px] w-[544px] h-px bg-black"></div>
+            <div class="absolute top-[1134px] left-[1365px] w-[373px] h-px bg-black"></div>
+            <div class="absolute top-[1693px] left-[185px] w-[544px] h-px bg-black"></div>
+            <div class="absolute top-[2049px] left-[775px] w-[568px] h-px bg-black"></div>
+
+            <p class="top-[2672px] left-[185px] w-[544px] font-extrabold text-[22px] text-center leading-[29.3px] absolute tracking-[0]">
+                <span class="text-black"> 언어학자들은 집단 착시라며 손사래…<br />주민들은 에이 </span>
+                <span class="interactive-group" data-type="purple">구라</span>
+                <span class="text-black">네 하며 불신 고조</span>
+            </p>
+
+            <img class="interactive-img absolute top-[1350px] left-[775px] w-[370px] h-[364px] aspect-[1.02] bg-gray-300 object-cover" src="https://placehold.co/370x364?text=IMG+04-1" alt="Element" />
+
+            <div class="absolute top-[2075px] left-[775px] w-[567px] h-[63px] bg-black"></div>
+            <div class="top-[2080px] left-[789px] w-[539px] font-extrabold text-white text-[46px] text-center leading-[54px] whitespace-nowrap absolute tracking-[0]">
+                손바닥에 뒤집힌 글자 유행
+            </div>
+
+            <img class="interactive-img absolute top-[2157px] left-[775px] w-[565px] h-[600px] aspect-[0.94] bg-gray-300 object-cover" src="https://placehold.co/565x600?text=IMG+03-1" alt="Element" />
+            <img class="interactive-img absolute top-[1150px] left-[1364px] w-[374px] h-[248px] bg-gray-300" src="https://placehold.co/374x248?text=Mask" alt="Mask group" />
+
+            <p class="top-[347px] left-[1365px] w-[373px] font-normal text-black text-sm text-right leading-[22.4px] absolute tracking-[0]">
+                ※눈에 보이는 기사를 믿지 마십시오. <br />
+                모두 거짓입니다. 곳곳에 배치된 오류를 클릭하여<br />
+                다른 페이지로 끌려가지 않도록 각별히 조심하시오.
+            </p>
+
+            <div class="absolute top-[340px] left-[184px] w-[310px] h-[70px] border border-solid border-black"></div>
+            <div class="absolute top-[340px] left-[185px] w-[159px] h-[70px] bg-black"></div>
+            <div class="absolute top-[340px] left-[184px] w-40 h-[70px] bg-white rounded-[80px/35px]"></div>
+
+            <div class="top-[346px] left-[462px] w-[26px] font-normal text-black text-lg text-center leading-[21px] absolute tracking-[0]">
+                記<br />者
+            </div>
+
+            <div class="top-[355px] left-[196px] font-extrabold text-black text-[34px] text-center leading-[normal] absolute tracking-[0]">
+                文字月刊
+            </div>
+
+            <div class="absolute top-[3331px] left-[185px] w-[1553px] h-[361px] bg-[#eeeeee]"></div>
+            <div class="absolute top-[3032px] left-[1070px] w-[270px] h-[274px] bg-[#eeeeee]"></div>
+            <div class="absolute top-[3009px] left-[1365px] w-[370px] h-[297px] bg-[#eeeeee]"></div>
+            <div class="absolute top-[1944px] left-[1630px] w-[105px] h-[231px] bg-[#eeeeee]"></div>
+
+            <div class="absolute top-[446px] left-[186px] w-[1555px] h-[3px] bg-black"></div>
+            <div class="absolute top-[451px] left-[186px] w-[1555px] h-px bg-black"></div>
+
+            <p class="top-[3507px] left-[470px] font-normal text-black text-[50px] text-center leading-[63px] whitespace-nowrap absolute tracking-[0]">
+                광고영역( 안에서 그리드 자유롭게 나눠서 쓸것)
+            </p>
+
+            <p class="top-[1423px] left-[1684px] w-[60px] font-extrabold text-black text-[50px] text-center leading-[50px] absolute tracking-[0]">
+                <span class="leading-[54px]">미국<br /></span>
+                <span class="leading-10"><br />전</span>
+                <span class="leading-[54px]">역에서</span>
+            </p>
+
+            <p class="top-[1427px] left-[1622px] w-[60px] font-extrabold text-[50px] text-center leading-[50px] absolute tracking-[0]">
+                <span class="text-black leading-[54px]">알파벳<br /></span>
+                <span class="text-black leading-10"><br /></span>
+                <span class="interactive-group leading-10" data-type="green">大</span>
+                <span class="interactive-group leading-[54px]" data-type="green">混乱</span>
+                <span class="text-black leading-10"><br /></span>
+                <span class="text-black leading-10">발</span>
+                <span class="text-black leading-[54px]">생</span>
+            </p>
+        </div>
+    </div>
+
+    <script>
+        const hanjaMap = {
+            '不安感': '不安感', '問題': '问题', '官公署 公文': '官公署 公文',
+            '特定 単語 反復 漏落': '特定 单词 反复 漏落', '怪現象': '怪现象',
+            '試験': '试验', '一部': '一部分', '写真': '照片', '意味': '意思',
+            '以上': '以上', '学生': '学生', '単語': '单词', '社会': '社会',
+            '実際': '实际', '微妙': '微妙', '変化': '变化', '表現': '表现',
+            '雰囲気': '气氛', '個人的': '个人的', '大': '大', '混乱': '混乱',
+            '専門家': '专家'
+        };
+
+        const emojiMap = {
+            '난처해했지만': '😓', '웃지 못할 분위기': '😅', '당황한': '😳',
+            '코웃음을 쳤다': '😤', '소름 돋는다': '😱', '불편해한다고': '😣',
+            '흥분한': '😡', '뒤숭숭': '🌪️', '울먹이며': '😢', '불안': '😨',
+            '의심스레': '🧐', '수상쩍은': '😒', '한숨을 쉬었다': '💨',
+            '부담스러 워': '💦', '예민': '⚡️', '수상하다': '🕵️‍♂️',
+            '신기하다': '✨', '혼란': '🌀', '불신': '🤨'
+        };
+
+        const baseLayer = document.getElementById('base-layer');
+        const lensCursor = document.getElementById('lens-cursor');
+        const lensContent = document.getElementById('lens-content');
+        const appWrapper = document.getElementById('app-wrapper');
+
+        // [토크나이저] 글자 분리
+        document.querySelectorAll('.interactive-group').forEach((group, groupIdx) => {
+            const fullText = group.innerText;
+            const type = group.dataset.type;
+            const groupId = `g-${groupIdx}`;
+            group.innerHTML = ''; 
+
+            [...fullText].forEach((char, charIdx) => {
+                const span = document.createElement('span');
+                span.innerText = char;
+                span.className = 'char-unit';
+                span.dataset.type = type;
+                span.dataset.original = char;
+                span.dataset.groupText = fullText; 
+                span.dataset.uid = `${groupId}-c${charIdx}`;
+                group.appendChild(span);
+            });
+        });
+
+        // 렌즈 복제
+        lensContent.innerHTML = baseLayer.innerHTML;
+
+        let currentScale = 1;
+        let marginX = 0;
+
+        function handleResize() {
+            const winW = window.innerWidth;
+            const docW = 1920;
+            const docH = 3888;
+            currentScale = Math.min(winW / docW, 1);
+            marginX = (winW - (docW * currentScale)) / 2;
+            if (marginX < 0) marginX = 0;
+            baseLayer.style.transform = `scale(${currentScale})`;
+            baseLayer.style.left = `${marginX}px`;
+            appWrapper.style.height = `${docH * currentScale}px`;
+        }
+        window.addEventListener('resize', handleResize);
+        handleResize();
+
+        const LENS_SIZE = 80;     
+        const MAGNIFICATION = 1.5; 
+
+        document.addEventListener('mousemove', (e) => {
+            if (e.target.closest('#sidebar')) {
+                lensCursor.style.display = 'none';
+                return;
+            }
+            lensCursor.style.display = 'block';
+            const mx = e.clientX;
+            const my = e.clientY;
+            lensCursor.style.transform = `translate(${mx - LENS_SIZE/2}px, ${my - LENS_SIZE/2}px)`;
+
+            const rect = baseLayer.getBoundingClientRect();
+            // scrollY 고려 (중요)
+            const relX = mx - rect.left;
+            const relY = my - rect.top; 
+
+            const totalScale = currentScale * MAGNIFICATION;
+            const contentX = -(relX * MAGNIFICATION) + (LENS_SIZE / 2);
+            const contentY = -(relY * MAGNIFICATION) + (LENS_SIZE / 2);
+
+            lensContent.style.transform = `translate(${contentX}px, ${contentY}px) scale(${totalScale})`;
+        });
+
+        document.addEventListener('mouseleave', () => {
+            lensCursor.style.display = 'none';
+            resetAllText();
+        });
+
+        let activeUid = null;
+
+        baseLayer.addEventListener('mousemove', (e) => {
+            const target = e.target;
+            if (target.classList.contains('char-unit')) {
+                const uid = target.dataset.uid;
+                if (activeUid !== uid) {
+                    if (activeUid) resetCharByUid(activeUid);
+                    activateChar(target);
+                    activeUid = uid;
+                }
+            } else {
+                if (activeUid) {
+                    resetCharByUid(activeUid);
+                    activeUid = null;
+                }
+            }
+        });
+
+        function activateChar(target) {
+            const uid = target.dataset.uid;
+            const type = target.dataset.type;
+            const char = target.dataset.original;
+            const groupText = target.dataset.groupText;
+
+            const targets = document.querySelectorAll(`.char-unit[data-uid="${uid}"]`);
+            
+            let newText = char;
+            let addClass = '';
+
+            if (type === 'green') {
+                const fullMapped = hanjaMap[groupText];
+                if (fullMapped && fullMapped.length === groupText.length) {
+                    const parent = target.parentElement;
+                    const index = Array.from(parent.children).indexOf(target);
+                    newText = fullMapped[index] || char; 
+                }
+            } else if (type === 'red') {
+                const key = Object.keys(emojiMap).find(k => groupText.includes(k));
+                const emoji = emojiMap[key || groupText];
+                if (emoji) {
+                    newText = (char === ' ' || char === '\n') ? char : emoji;
+                }
+            } else if (type === 'purple') {
+                addClass = 'struck-through';
+            }
+
+            // 적용 (Absolute Overlay + Transparent Base)
+            targets.forEach(el => {
+                // 원본 글자 투명 처리 (공간 차지)
+                el.style.color = 'transparent';
+
+                // 오버레이 생성 (정중앙 절대좌표)
+                const overlay = document.createElement('span');
+                overlay.className = 'char-overlay ' + addClass;
+                overlay.innerText = newText;
+                el.appendChild(overlay);
+            });
+        }
+
+        function resetCharByUid(uid) {
+            const targets = document.querySelectorAll(`.char-unit[data-uid="${uid}"]`);
+            targets.forEach(el => {
+                el.style.color = ''; // 색상 복구
+                const overlay = el.querySelector('.char-overlay');
+                if (overlay) overlay.remove();
+            });
+        }
+
+        function resetAllText() {
+            if (activeUid) {
+                resetCharByUid(activeUid);
+                activeUid = null;
+            }
+        }
+
+        let globalTimer = null;
+
+        function triggerGlobalEffect(who) {
+            if (globalTimer) clearTimeout(globalTimer);
+            resetAllText(); 
+            document.querySelectorAll('.char-unit').forEach(el => resetCharByUid(el.dataset.uid));
+            document.querySelectorAll('.interactive-img').forEach(el => el.classList.remove('blinking'));
+            document.querySelectorAll('#lens-content img').forEach(el => el.classList.remove('blinking'));
+
+            if (who === 'hwang') {
+                const allImgs = document.querySelectorAll('img'); 
+                allImgs.forEach(img => img.classList.add('blinking'));
+                globalTimer = setTimeout(() => {
+                    allImgs.forEach(img => img.classList.remove('blinking'));
+                }, 3000);
+
+            } else {
+                let targetType = '';
+                if (who === 'kim') targetType = 'green';
+                if (who === 'park') targetType = 'red';
+                if (who === 'lee') targetType = 'purple';
+
+                const targets = document.querySelectorAll(`.char-unit[data-type="${targetType}"]`);
+                const processedUids = new Set();
+                
+                targets.forEach(t => {
+                    const uid = t.dataset.uid;
+                    if (!processedUids.has(uid)) {
+                        if(t.closest('#base-layer')) {
+                            activateChar(t); 
+                            processedUids.add(uid);
+                        }
+                    }
+                });
+
+                globalTimer = setTimeout(() => {
+                    processedUids.forEach(uid => resetCharByUid(uid));
+                }, 3000);
+            }
+        }
+
+    </script>
+</body>
+</html>
