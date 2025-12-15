@@ -30,7 +30,7 @@
             justify-content: center;
         }
 
-        /* 디자인 보드 */
+        /* 디자인 보드 (검은색 배경 기준) */
         .design-board {
             width: 1920px;
             height: 3888px;
@@ -85,7 +85,6 @@
         /* 
            [오버레이 텍스트]
            - 원본 글자 정중앙에 위치
-           - 원본 글자가 transparent가 되어도 얘는 black이어야 함
         */
         .char-overlay {
             position: absolute;
@@ -95,17 +94,16 @@
             display: flex;
             align-items: center; 
             justify-content: center;
-            width: 100%; /* 부모 너비 꽉 채움 */
-            height: 100%; /* 부모 높이 꽉 채움 */
+            width: 100%;
+            height: 100%;
             
-            background-color: white; /* 뒤에 있는 원본(투명해진) 글자 잔상 가림용 */
-            color: black !important; /* 글자색 강제 */
+            background-color: white;
+            color: black !important;
             
             white-space: nowrap;
-            pointer-events: none;
+            pointer-events: none; /* 클릭 통과 */
             z-index: 10;
             
-            /* 폰트 크기나 줄높이는 부모 상속 */
             font-size: inherit;
             line-height: inherit;
             font-weight: inherit;
@@ -119,9 +117,14 @@
 
         p { line-height: 1.6; }
 
+        /* 클릭 가능한 요소에 커서 표시 */
+        img[data-owner], 
+        .char-unit {
+            cursor: pointer;
+        }
+
         /* 
            [사이드바 수정]
-           - 점 + 이름 디자인
         */
         #sidebar {
             position: fixed;
@@ -132,9 +135,9 @@
             display: flex;
             flex-direction: column;
             gap: 20px;
-            cursor: default;
+            cursor: default; /* 사이드바 자체는 기본 커서 */
             
-            background-color: rgba(255, 255, 255, 0.9); /* 가독성 확보 */
+            background-color: rgba(255, 255, 255, 0.9);
             padding: 25px;
             border: 1px solid #ccc;
             box-shadow: 0 4px 15px rgba(0,0,0,0.2);
@@ -161,7 +164,7 @@
             font-weight: bold;
             font-size: 20px;
             line-height: 0;
-            margin-top: -2px; /* 시각적 중앙 보정 */
+            margin-top: -2px; 
         }
 
         @keyframes blink-effect {
@@ -177,8 +180,7 @@
 </head>
 <body>
 
-    <!-- 사이드바 (그래픽 힌트) -->
-    <!-- 커서가 보여야 클릭 가능하므로 cursor: auto 지정 -->
+    <!-- 사이드바 -->
     <div id="sidebar" style="cursor: auto;">
         <div class="sidebar-item" onclick="triggerGlobalEffect('kim')">
             <span class="sidebar-dot">·</span> 김영우
@@ -203,18 +205,28 @@
     <div id="app-wrapper">
         <div id="base-layer" class="design-board">
             
+            <!-- 흰색 배경 (기준점 역할은 아니지만 시각적 배경) -->
             <div class="absolute top-[158px] left-[145px] w-[1631px] h-[3572px] bg-white"></div>
             
-            <!-- 이미지들 (수정됨) -->
+            <!-- [이미지 배치] -->
+            <!-- 황제연 이미지들 -->
             <!-- IMG 02-1 -->
-            <img class="interactive-img absolute top-[484px] left-[775px] w-[568px] h-[394px] aspect-[1.44] bg-gray-300 object-cover" src="https://i.imgur.com/YhGLLdj.png" alt="Element" />
-            
+            <img data-owner="hwang" class="interactive-img absolute top-[484px] left-[775px] w-[568px] h-[394px] aspect-[1.44] bg-gray-300 object-cover" src="https://i.imgur.com/YhGLLdj.png" alt="Element" />
             <!-- IMG 01-1 -->
-            <img class="interactive-img absolute top-[1717px] left-[184px] w-[359px] h-[439px] aspect-[0.82] bg-gray-300 object-cover" src="https://i.imgur.com/zM1Ljl5.png" alt="Element" />
-            
-            <!-- IMG 1 -->
-            <img class="interactive-img absolute top-[194px] left-[525px] w-[871px] h-[223px] aspect-[3.9] object-cover bg-gray-300" src="https://i.imgur.com/uEaVDd2.png" alt="Element" />
+            <img data-owner="hwang" class="interactive-img absolute top-[1717px] left-[184px] w-[359px] h-[439px] aspect-[0.82] bg-gray-300 object-cover" src="https://i.imgur.com/zM1Ljl5.png" alt="Element" />
+            <!-- IMG 04-1 -->
+            <img data-owner="hwang" class="interactive-img absolute top-[1350px] left-[775px] w-[370px] h-[364px] aspect-[1.02] bg-gray-300 object-cover" src="https://i.imgur.com/iz48xWs.png" alt="Element" />
+            <!-- Mask -->
+            <img data-owner="hwang" class="interactive-img absolute top-[1150px] left-[1364px] w-[374px] h-[248px] bg-gray-300" src="https://i.imgur.com/E1iNAYu.png" alt="Mask group" />
 
+            <!-- 김영우 이미지 (상단 타이틀 배경) -->
+            <!-- IMG 1 -->
+            <img data-owner="kim" class="interactive-img absolute top-[194px] left-[525px] w-[871px] h-[223px] aspect-[3.9] object-cover bg-gray-300" src="https://i.imgur.com/uEaVDd2.png" alt="Element" />
+
+            <!-- 손바닥 이미지 (주인 없음) -->
+            <img data-owner="hwang" class="interactive-img absolute top-[2157px] left-[775px] w-[565px] h-[600px] aspect-[0.94] bg-gray-300 object-cover" src="https://imgur.com/NuDyp1m.png" alt="Element" />
+
+            <!-- 텍스트 요소들 -->
             <div class="top-[194px] left-[186px] w-[325px] font-normal text-black text-[28px] leading-[normal] whitespace-nowrap absolute tracking-[0]">
                 1970年 12月 16日 水曜日
             </div>
@@ -300,7 +312,7 @@
                 공식 입장은 여전히 인쇄 오류라는 설 명이지만 직원들 사이에서는 누군가 의도적으로 손을 대는 것 아니냐는 말 도 나온다. 특히 빠지는 단어가 늘 비 슷하다는 점이 문제로 지적된다.
             </p>
 
-            <!-- 기자 목록 (사이드바 연동) -->
+            <!-- 기자 목록 -->
             <div class="top-[344px] left-[357px] w-[21px] font-bold text-black text-[15px] text-center leading-[20.7px] absolute tracking-[0]">황<br>제<br>연</div>
             <div class="top-[344px] left-[381px] w-[21px] font-bold text-black text-[15px] text-center leading-[20.7px] absolute tracking-[0]">이<br>채<br>원</div>
             <div class="top-[344px] left-[405px] w-[21px] font-bold text-black text-[15px] text-center leading-[20.7px] absolute tracking-[0]">박<br>제<br>하</div>
@@ -439,7 +451,7 @@
                 <span class="interactive-group" data-type="red">뒤숭숭</span>
                 <span class="text-black">해지고 있다. 한 주민은 아침에 마당을 쓸다가 현관 문패를 보고 영판 기절할 뻔했다며 하 소연했다. 분명 어제까지만 해도 아내 이름이 제대로 적혀 있었는데 밤새 글 자 둘이 뒤바뀌어 딴사람 이름 모양이 되었다는 것이다. 처음에는 장난인가 싶어 아이들을 의심했으나 아이들이 </span>
                 <span class="interactive-group" data-type="red">울먹이며</span>
-                <span class="text-black"> 자신들이 그런 장난을 친 적 이 없다고 주장하자 가족들은 </span>
+                <span class="text-black">자신들이 그런 장난을 친 적 이 없다고 주장하자 가족들은 </span>
                 <span class="interactive-group" data-type="purple">도통</span>
                 <span class="text-black"> 무 슨 영문인지 몰라 서로 눈치만 봤다.<br />또 어느 마을에서는 장정의 이름 석 자 가운데 가운데 글자만 감쪽같이 증 발해버리는 바람에 동네가 한바탕 난 리법석이 났다. 주민들은 혹시 도적 이라도 들까 우려해 밤새 순찰을 돌았고 </span>
                 <span class="interactive-group" data-type="purple">짭새</span>
@@ -496,18 +508,10 @@
                 <span class="text-black">네 하며 불신 고조</span>
             </p>
 
-            <!-- IMG 04-1 (수정됨) -->
-            <img class="interactive-img absolute top-[1350px] left-[775px] w-[370px] h-[364px] aspect-[1.02] bg-gray-300 object-cover" src="https://i.imgur.com/iz48xWs.png" alt="Element" />
-
             <div class="absolute top-[2075px] left-[775px] w-[567px] h-[63px] bg-black"></div>
             <div class="top-[2080px] left-[789px] w-[539px] font-extrabold text-white text-[46px] text-center leading-[54px] whitespace-nowrap absolute tracking-[0]">
                 손바닥에 뒤집힌 글자 유행
             </div>
-
-            <img class="interactive-img absolute top-[2157px] left-[775px] w-[565px] h-[600px] aspect-[0.94] bg-gray-300 object-cover" src="https://imgur.com/NuDyp1m.png" alt="Element" />
-            
-            <!-- Mask (수정됨) -->
-            <img class="interactive-img absolute top-[1150px] left-[1364px] w-[374px] h-[248px] bg-gray-300" src="https://i.imgur.com/E1iNAYu.png" alt="Mask group" />
 
             <p class="top-[347px] left-[1365px] w-[373px] font-normal text-black text-sm text-right leading-[22.4px] absolute tracking-[0]">
                 ※눈에 보이는 기사를 믿지 마십시오. <br />
@@ -527,17 +531,57 @@
                 文字月刊
             </div>
 
-            <div class="absolute top-[3331px] left-[185px] w-[1553px] h-[361px] bg-[#eeeeee]"></div>
-            <div class="absolute top-[3032px] left-[1070px] w-[270px] h-[274px] bg-[#eeeeee]"></div>
-            <div class="absolute top-[3009px] left-[1365px] w-[370px] h-[297px] bg-[#eeeeee]"></div>
-            <div class="absolute top-[1944px] left-[1630px] w-[105px] h-[231px] bg-[#eeeeee]"></div>
+            <!-- --- 광고 영역 (위치 보정 및 data-owner 적용 완료) --- -->
+            
+            <!-- 우측 상단 광고 -->
+            <img class="absolute top-[1944px] left-[1632px] w-[104px] h-[229px] aspect-[0.45] object-cover" alt="Element" src="https://i.imgur.com/HSqYRhf.png" />
+            
+            <!-- 중간 우측 광고 -->
+            <img class="absolute top-[3050px] left-[1071px] w-[265px] h-[270px] aspect-[0.98] object-cover" alt="Element" src="https://i.imgur.com/h3MlPZv.png" />
+            <img class="absolute top-[3008px] left-[1350px] w-[388px] h-[312px] aspect-[1.25] object-cover" alt="Element" src="https://i.imgur.com/LumFMY6.png" />
+            
+            <!-- 하단 광고 그리드 영역 -->
+            <!-- 김영우 -->
+            <img data-owner="kim" class="absolute top-[3334px] left-[490px] w-[54px] h-[226px] aspect-[0.24] object-cover" alt="Element" src="https://i.imgur.com/lpQnmCb.png" />
+            <!-- 이채원 -->
+            <img data-owner="lee" class="absolute top-[3334px] left-[555px] w-[197px] h-[226px] aspect-[0.87] object-cover" alt="Element" src="https://i.imgur.com/RT8d1Tc.png" />
+            <!-- 황제연 -->
+            <img data-owner="hwang" class="absolute top-[3334px] left-[773px] w-[164px] h-[105px] aspect-[1.56] object-cover" alt="Element" src="https://i.imgur.com/CTdxWn0.png" />
+            <!-- 박제하 -->
+            <img data-owner="park" class="absolute top-[3334px] left-[937px] w-[164px] h-[105px] aspect-[1.56] object-cover" alt="Element" src="https://i.imgur.com/lGA6iWI.png" /> 
+            <!-- 김영우 -->
+            <img data-owner="kim" class="absolute top-[3334px] left-[1113px] w-[134px] h-[105px] aspect-[1.28] object-cover" alt="Element" src="https://i.imgur.com/gXEhfjj.png" />
+            <!-- 박제하 -->
+            <img data-owner="park" class="absolute top-[3337px] left-[1258px] w-20 h-[339px] aspect-[0.24] object-cover" alt="Element" src="https://i.imgur.com/iiWzIdq.png" />
+            <!-- 김영우 -->
+            <img data-owner="kim" class="absolute top-[3337px] left-[1350px] w-20 h-[258px] aspect-[0.31] object-cover" alt="Element" src="https://i.imgur.com/bvVSiUM.png" />
+            <!-- 황제연 -->
+            <img data-owner="hwang" class="absolute top-[3337px] left-[1439px] w-[302px] h-[339px] aspect-[0.89] object-cover" alt="Element" src="https://i.imgur.com/0shYzAu.png" />
+            
+            <!-- 김영우 (추가됨) -->
+            <img data-owner="kim" class="absolute top-[3334px] left-[184px] w-[295px] h-[110px] aspect-[2.68] object-cover" alt="Element" src="https://i.imgur.com/YJHTTiA.png" />
+            <!-- 김영우 -->
+            <img data-owner="kim" class="absolute top-[3450px] left-[184px] w-[295px] h-[110px] aspect-[2.68] object-cover" alt="Element" src="https://i.imgur.com/jQxyhFb.png" />
+            <!-- 산타 -->
+            <img class="absolute top-[3451px] left-[763px] w-[94px] h-[225px] aspect-[0.42] object-cover" alt="Element" src="https://i.imgur.com/nQ4OZAu.png" />
+            <!-- 이채원 -->
+            <img data-owner="lee" class="absolute top-[3451px] left-[868px] w-[234px] h-40 aspect-[1.46] object-cover" alt="Element" src="https://i.imgur.com/ncvjif4.png" />
+            <!-- 이채원 -->
+            <img data-owner="lee" class="absolute top-[3451px] left-[1113px] w-[134px] h-[225px] aspect-[0.6] object-cover" alt="Element" src="https://i.imgur.com/NQQTnn3.png" />
+            
+            <!-- 박제하 -->
+            <img data-owner="park" class="absolute top-[3566px] left-[184px] w-[295px] h-[110px] aspect-[2.68] object-cover" alt="Element" src="https://i.imgur.com/qhNeBTY.png" />
+            <!-- 황제연 -->
+            <img data-owner="hwang" class="absolute top-[3571px] left-[490px] w-[262px] h-[105px] aspect-[2.49] object-cover" alt="Element" src="https://i.imgur.com/xnLtPE8.png" />
+            <!-- 김영우 -->
+            <img data-owner="kim" class="absolute top-[3606px] left-[1349px] w-20 h-[70px] aspect-[1.14] object-cover" alt="Element" src="https://i.imgur.com/AgyHATX.png" />
+            <!-- 김영우 -->
+            <img data-owner="kim" class="absolute top-[3622px] left-[868px] w-[234px] h-[54px] aspect-[4.33] object-cover" alt="Element" src="https://i.imgur.com/sKKGLva.png" />
+
+            <!-- --- 광고 영역 끝 --- -->
 
             <div class="absolute top-[446px] left-[186px] w-[1555px] h-[3px] bg-black"></div>
             <div class="absolute top-[451px] left-[186px] w-[1555px] h-px bg-black"></div>
-
-            <p class="top-[3507px] left-[470px] font-normal text-black text-[50px] text-center leading-[63px] whitespace-nowrap absolute tracking-[0]">
-                광고영역( 안에서 그리드 자유롭게 나눠서 쓸것)
-            </p>
 
             <p class="top-[1423px] left-[1684px] w-[60px] font-extrabold text-black text-[50px] text-center leading-[50px] absolute tracking-[0]">
                 <span class="leading-[54px]">미국<br /></span>
@@ -575,6 +619,21 @@
             '의심스레': '🧐', '수상쩍은': '😒', '한숨을 쉬었다': '💨',
             '부담스러 워': '💦', '예민': '⚡️', '수상하다': '🕵️‍♂️',
             '신기하다': '✨', '혼란': '🌀', '불신': '🤨'
+        };
+
+        // 1. 링크 주소 정의
+        const linkMap = {
+            'kim': 'https://youngwookim11.github.io/broken-words1/',
+            'hwang': 'https://joey991229.github.io/Gesture/',
+            'lee': 'https://taebyul0221-hub.github.io/dead-language-web/',
+            'park': 'https://emotiondive.netlify.app/'
+        };
+
+        // 2. 텍스트 색상(data-type)과 사람 이름 매핑
+        const colorToOwner = {
+            'green': 'kim',
+            'purple': 'lee',
+            'red': 'park'
         };
 
         const baseLayer = document.getElementById('base-layer');
@@ -698,12 +757,9 @@
                 addClass = 'struck-through';
             }
 
-            // 적용 (Absolute Overlay + Transparent Base)
+            // 적용
             targets.forEach(el => {
-                // 원본 글자 투명 처리 (공간 차지)
                 el.style.color = 'transparent';
-
-                // 오버레이 생성 (정중앙 절대좌표)
                 const overlay = document.createElement('span');
                 overlay.className = 'char-overlay ' + addClass;
                 overlay.innerText = newText;
@@ -714,7 +770,7 @@
         function resetCharByUid(uid) {
             const targets = document.querySelectorAll(`.char-unit[data-uid="${uid}"]`);
             targets.forEach(el => {
-                el.style.color = ''; // 색상 복구
+                el.style.color = ''; 
                 const overlay = el.querySelector('.char-overlay');
                 if (overlay) overlay.remove();
             });
@@ -733,25 +789,18 @@
             if (globalTimer) clearTimeout(globalTimer);
             resetAllText(); 
             document.querySelectorAll('.char-unit').forEach(el => resetCharByUid(el.dataset.uid));
-            document.querySelectorAll('.interactive-img').forEach(el => el.classList.remove('blinking'));
-            document.querySelectorAll('#lens-content img').forEach(el => el.classList.remove('blinking'));
+            document.querySelectorAll('img').forEach(el => el.classList.remove('blinking'));
 
-            if (who === 'hwang') {
-                const allImgs = document.querySelectorAll('img'); 
-                allImgs.forEach(img => img.classList.add('blinking'));
-                globalTimer = setTimeout(() => {
-                    allImgs.forEach(img => img.classList.remove('blinking'));
-                }, 3000);
+            // 1. 텍스트 효과
+            let targetType = '';
+            if (who === 'kim') targetType = 'green';
+            if (who === 'park') targetType = 'red';
+            if (who === 'lee') targetType = 'purple';
 
-            } else {
-                let targetType = '';
-                if (who === 'kim') targetType = 'green';
-                if (who === 'park') targetType = 'red';
-                if (who === 'lee') targetType = 'purple';
-
+            const processedUids = new Set();
+            
+            if (targetType) {
                 const targets = document.querySelectorAll(`.char-unit[data-type="${targetType}"]`);
-                const processedUids = new Set();
-                
                 targets.forEach(t => {
                     const uid = t.dataset.uid;
                     if (!processedUids.has(uid)) {
@@ -761,12 +810,46 @@
                         }
                     }
                 });
-
-                globalTimer = setTimeout(() => {
-                    processedUids.forEach(uid => resetCharByUid(uid));
-                }, 3000);
             }
+
+            // 2. 이미지 깜빡임 효과
+            const targetImgs = document.querySelectorAll(`img[data-owner="${who}"]`);
+            targetImgs.forEach(img => {
+                img.classList.add('blinking');
+            });
+
+            // 3초 뒤 복구
+            globalTimer = setTimeout(() => {
+                processedUids.forEach(uid => resetCharByUid(uid));
+                targetImgs.forEach(img => img.classList.remove('blinking'));
+            }, 3000);
         }
+
+        // 3. 통합 클릭 이벤트 리스너 (이미지 & 텍스트)
+        document.addEventListener('click', (e) => {
+            if (e.target.closest('#sidebar')) return;
+
+            let owner = null;
+            const target = e.target;
+
+            // [경우 A] 이미지를 클릭했을 때
+            if (target.tagName === 'IMG' && target.dataset.owner) {
+                owner = target.dataset.owner;
+            }
+
+            // [경우 B] 글자를 클릭했을 때
+            const charUnit = target.closest('.char-unit');
+            if (charUnit) {
+                const type = charUnit.dataset.type;
+                if (type && colorToOwner[type]) {
+                    owner = colorToOwner[type];
+                }
+            }
+
+            if (owner && linkMap[owner]) {
+                window.open(linkMap[owner], '_blank'); 
+            }
+        });
 
     </script>
 </body>
